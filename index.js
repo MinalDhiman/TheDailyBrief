@@ -1,110 +1,60 @@
-const express= require("express");
-const axios = require("axios");
-const bodyParser= require("body-parser");
-const cors = require('cors');
-const session = require("express-session");
-const cookieParser = require("cookie-parser");
-const { collection } = require("./db");
-const mongoStore= require("connect-mongo");
-const app = express();
-app.use(cors({
-    origin:["http://localhost:3000"],
-    credentials:true
-}));
-app.use(bodyParser.json());
-app.use(cookieParser());
-app.use(session({
-    secret:"secret",
-    resave:false,
-    saveUninitialized:true,
-    cookie:{
-        secure:false,
-        maxAge:1000*60*60*24
-    },
-    store: new mongoStore({
-        mongoUrl:'mongodb://127.0.0.1:27017/newsWebsite',
-        collection:'sessions',
-        ttl:100*60*10
-    })
-}))
-app.use(express.json());
-app.use(express.urlencoded({extended:true}))
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import Layout from './Components/Layout';
+import Loginform from './Components/loginform/Loginform';
+import NewsCard from './Components/NewsCard';
+import Signupform from './Components/loginform/Signupform';
 
-const isAuth=(req,res,next)=>{
-    const user=req.session.user;
-    console.log(user);
-    if(user){
-        console.log("auth");
-        next();
-    }
-    else{
-        console.log("not auth user");
-        req.session.destroy();
-        res.status(401).json({succes:false,message:"Unauthorized"});
-    }
-}
-app.post("/api",isAuth,async (req,res)=>{
-    console.log(req.body.cat);
-    let url = `https://newsapi.org/v2/top-headlines?country=in&category=${req.body.cat}&apiKey=26558061eaee4ac58bee7ff8d14ed7dc`;
-    try{
-    let r = await axios(url);
-    let a = await r.data;
-    res.send(a);}
-    catch(error){
-        res.status(500).json({error: 'Internal Server Error'});
-    }
-})
+const router = createBrowserRouter([
+  {
+    path:"/",
+    element:<Layout/>,
+    children:[
+      {
+        path:"/signup",
+        element:<Signupform/>
 
+      },
+      {
+        path:"/",
+        element:<Loginform/>
+      },
+      {
+        path:"/general",
+        element:<NewsCard category="general" exact key="general"/>
+      },
+      {
+        path:"/entertainment",
+        element:<NewsCard category="entertainment" exact key="entertainment"/>
+      },
+      {
+        path:"/health",
+        element:<NewsCard category="health" exact key="health"/>
+      },
+      {
+        path:"/technology",
+        element:<NewsCard category="technology" exact key="technology"/>
+      },
+      {
+        path:"/business",
+        element:<NewsCard category="business" exact key="business"/>
+      },
+      {
+        path:"/sports",
+        element:<NewsCard category="sports" exact key="sports"/>
+      },
+    ]
+  }
+])
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+   <RouterProvider router={router}/>
+);
 
-app.post("/login",async(req,res)=>{
-    const {email,password}=req.body;
-    console.log("email in the login "+ email + " " + password);
-    try{
-        const check = await collection.findOne({email:email})
-        if(check){
-            req.session.user = { email: check.email};
-          
-            res.json("exist");
-        }
-        else{
-            res.json("notexist");
-        }
-    }
-    catch(e){
-         res.json("notexist");
-    }
-})
-
-app.get("/logout",(req,res)=>{
-    req.session.destroy();
-    res.json("Log out");
-})
-
-app.post("/signup",async(req,res)=>{
-    const {name,email,password}=req.body;
-    console.log("email in the signup "+ email);
-    const data ={
-        name:name,
-        email:email,
-        password:password
-    }
-    try{
-        const check = await collection.findOne({email:email})
-        
-        if(check){
-            res.json("exist");
-        }
-        else{
-            await collection.insertMany([data]);
-            req.session.user = { email: data.email};
-            res.json("notexist");
-        }
-    }
-    catch(e){
-        res.json("notexist");
-    }
-})
-
-app.listen("8080",()=>{
-    console.log("Server running on port 8080");
-})
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
